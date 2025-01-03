@@ -21,6 +21,10 @@ struct Printer {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 设置控制台标题
+    println!("打印机状态监控程序");
+    println!("==================\n");
+
     let com_con = COMLibrary::new()?;
     let wmi_con = WMIConnection::new(com_con.into())?;
 
@@ -29,14 +33,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for job in &print_jobs {
         println!("任务: {}", job.caption);
         if let Some(status) = &job.job_status {
-            println!("状态: {}", status);
+            println!("任务状态: {}", status);
         }
+        if let Some(status) = &job.status {
+            println!("详细状态: {}", status);
+        }
+        if let Some(mask) = job.status_mask {
+            if mask & 0x1 != 0 {
+                println!("状态: 暂停");
+            }
+        }
+        println!("");
     }
 
     let printers: Vec<Printer> = wmi_con.raw_query("SELECT * FROM Win32_Printer")?;
     println!("\n打印机状态:");
     for printer in &printers {
         println!("打印机名称: {}", printer.name);
+        
+        if printer.work_offline {
+            println!("状态: 离线");
+            continue;
+        }
         
         if let Some(status) = printer.status {
             match status {
